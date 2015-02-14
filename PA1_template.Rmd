@@ -1,25 +1,139 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research - Peer Assessment No. 1"
+output: html_document
+keep_md: true
 ---
 
-
-## Loading and preprocessing the data
-
+This is the R Markdown document for the Peer Assessment No. 1 of The Reproducible Reseach Course - part of Specialization Certificate on Data Science. 
 
 
-## What is mean total number of steps taken per day?
+###Introduction
 
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. 
 
+The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
 
-## What is the average daily activity pattern?
+This report describes the multiple parts of assignment. The report answers the questions of assignment and includes the R code used to generate the required output.  
 
+###(1) Loading and preprocessing the data
 
+```{r}
+act_data <- read.csv ("activity.csv")
+str (act_data)
+summary (act_data)
+```
 
-## Imputing missing values
+###(2) What is mean total number of steps taken per day?
 
+ Using the aggregate function to generate the total number of steps taken per day:
+    
+```{r}
+step_total_day <- aggregate(steps ~ date, data=act_data, sum)
+step_total_day
+```
 
+ The histogram of the total number of steps taken each day:
+  
+```{r}
+ hist (step_total_day$steps, main = " Histogram of total number of steps", 
+       xlab = "Total nmber of steps taken each day")
+```
 
-## Are there differences in activity patterns between weekdays and weekends?
+ The mean and median of the total number of steps taken per    day:
+
+```{r}
+step_mean <- mean(step_total_day$steps, na.rm = TRUE)
+step_median <- median(step_total_day$steps, na.rm = TRUE)
+```
+
+ The mean is `r step_mean`. The median is `r step_median`.
+
+###(3) What is the average daily activity pattern?
+
+ The time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis). The plot shows a line at the maximum number of steps corresponding to exact 5-minute interval, on average across all the days in the dataset on x-axis:
+  
+```{r}
+ library(lattice)
+ act_data$interval_factor <- as.factor(act_data$interval)
+ int_step_avg <- aggregate(steps ~ interval_factor, data = act_data, mean)
+ x <- as.numeric(as.character(int_step_avg$interval_factor))
+ y <- int_step_avg$steps
+ xyplot(y ~ x, type = "l", tick.number =100, main = "Time series plot of 5-minute interval and average number of steps", 
+   xlab = "5-minute interval", ylab = "Average number of steps",  
+   panel = function(x, y, ...) {
+     panel.xyplot(x, y, ...)  
+     panel.abline(h = max(y), lty = 2)  
+ })
+```
+
+###(4) What is impact of Imputing missing values
+
+The following R code calculates and reports the total number of missing values in the dataset (i.e. the total number of rows with NAs):
+
+```{r}
+ sum(!complete.cases(act_data))
+```
+
+ Here, a strategy for filling in all of the missing values in the dataset. The strategy use the means for the 5-minute intervals, which shows a new dataset that is equal to the original dataset but with the missing data filled in :
+ 
+```{r}
+ library(dplyr)
+ act_data_imputed <- group_by(act_data, interval_factor)
+ act_data_imputed <- mutate(act_data_imputed, steps = ifelse (is.na(steps), 
+                           as.integer(mean(steps, na.rm=TRUE)), 
+                           steps))
+ head (act_data_imputed, 10)
+```
+
+ Here, the histogram of the total number of steps taken each day using imputed dataset:
+ 
+```{r}
+ step_total_day_imputed <- aggregate(steps ~ date, data=act_data_imputed, sum)
+ hist (step_total_day_imputed$steps, main = "Histogram of total number of steps (imputed dataset)",
+       xlab = "Total nmber of steps taken each day")
+```
+
+ The following R code calculates and reports the mean and median total number of steps taken per day using the imputed dataset:
+
+```{r}
+ step_mean_imputed <- mean(step_total_day_imputed$steps, na.rm = TRUE)
+ step_median_imputed <- median(step_total_day_imputed$steps, na.rm = TRUE)
+```
+
+ The mean from imputed data set is `r step_mean_imputed`. 
+ The median from imputed dataset is `r step_median_imputed`.
+ 
+ Clearly, we can notice that these values differ from the estimates from the first part of the assignment. This due to imputing the missing values of some steps.
+ 
+ The impact of imputing missing data on the estimates of the total daily number of steps can be noticed on the improvement of the measures of the values.
+ 
+###(5) Are there differences in activity patterns between weekdays and weekends? 
+
+ The following R code creates a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day using the dataset with the filled-in missing values.It also shows structure of a data frame of the average number of steps taken, averaged across all 5-minute intervals and all weekday days or weekend days created by aggregate function:
+  
+```{r}
+ act_data_imputed_day <- mutate(act_data_imputed, 
+            day = as.factor(ifelse(weekdays(as.Date(date)) == "Saturday" 
+                            | weekdays(as.Date(date)) == "Sunday", 
+                              "Weekend", "Weekday")))
+ int_step_day_avg <- aggregate(steps ~ interval_factor + day, 
+                              data = act_data_imputed_day, mean)
+ str (int_step_day_avg)
+```
+
+ This last R code shows a panel plot containing a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis):
+
+```{r}
+ x <- as.numeric(as.character(int_step_day_avg$interval_factor))
+ y <- int_step_day_avg$steps
+ f <- int_step_day_avg$day
+ xyplot(y ~ x | f, type = "l", tick.number =100, main = "Time series plot: interval and average of steps on weekday and weekend", 
+   xlab = "5-minute interval", ylab = "Average number of steps", 
+       panel = function(x, y, ...) {
+          panel.xyplot(x, y, ...)  
+          panel.abline(h = max(y), lty = 2)  
+   })
+```
+
+ -End of Report-
+ 
